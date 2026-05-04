@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Factory Inventory Management System Demo with GitHub integration - Full-stack application with Vue 3 frontend, Python FastAPI backend, and in-memory mock data (no database).
 
 ## Critical Tool Usage Rules
@@ -30,14 +32,46 @@ Use the Task tool with these specialized subagents for appropriate tasks:
 
 ## Quick Start
 
+**macOS/Linux (one command):**
 ```bash
-# Backend
+./scripts/start.sh
+```
+
+**Manual / Windows (run each in a separate terminal):**
+```bash
+# Backend (first-time: uv venv && uv sync)
 cd server
 uv run python main.py
 
 # Frontend
 cd client
 npm install && npm run dev
+```
+
+## Testing
+
+```bash
+# Run all backend tests
+cd tests
+uv run pytest -v
+
+# Run a single test file
+uv run pytest backend/test_inventory.py -v
+
+# Run a single test
+uv run pytest backend/test_inventory.py::TestInventoryEndpoints::test_get_all_inventory -v
+
+# Run with coverage
+uv run pytest --cov=../server --cov-report=html
+```
+
+Test fixtures live in `tests/backend/conftest.py`. Tests use FastAPI `TestClient` — no running server needed.
+
+## Production Build
+
+```bash
+cd client
+npm run build  # Output: client/dist/
 ```
 
 ## Key Patterns
@@ -52,6 +86,8 @@ npm install && npm run dev
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
 - `GET /api/spending/*` - Summary, monthly, categories, transactions
+- `GET /api/reports/quarterly` - Quarterly stats derived from orders
+- `GET /api/reports/monthly-trends` - Month-over-month order trends
 
 ## Common Issues
 1. Use unique keys in v-for (not `index`) - use `sku`, `month`, etc.
@@ -72,3 +108,6 @@ npm install && npm run dev
 - Status: green/blue/yellow/red
 - Charts: Custom SVG, CSS Grid for layouts
 - No emojis in UI
+
+## Code Style
+- Always document non-obvious logic changes with comments
