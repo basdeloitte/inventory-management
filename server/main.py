@@ -89,6 +89,21 @@ class DemandForecast(BaseModel):
     forecasted_demand: int
     trend: str
     period: str
+    unit_cost: float
+
+class RestockOrderItem(BaseModel):
+    sku: str
+    name: str
+    quantity: int
+    unit_price: float
+
+class RestockOrderRequest(BaseModel):
+    items: List[RestockOrderItem]
+    budget: float
+    total_value: float
+
+# In-memory storage for submitted restock orders (cleared on server restart)
+restock_orders: List[dict] = []
 
 class BacklogItem(BaseModel):
     id: str
@@ -152,6 +167,32 @@ def get_orders(
     filtered_orders = apply_filters(orders, warehouse, category, status)
     filtered_orders = filter_by_month(filtered_orders, month)
     return filtered_orders
+
+@app.post("/api/orders/restock", response_model=Order, status_code=201)
+def submit_restock_order(request: RestockOrderRequest):
+    """Submit a restocking order based on demand forecasts"""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    order = {
+        "id": str(len(restock_orders) + 10000),
+        "order_number": f"RST-{now.strftime('%Y%m%d%H%M%S')}",
+        "customer": "Internal Restocking",
+        "items": [item.dict() for item in request.items],
+        "status": "Processing",
+        "order_date": now.isoformat(),
+        "expected_delivery": (now + timedelta(days=14)).isoformat(),
+        "total_value": request.total_value,
+        "actual_delivery": None,
+        "warehouse": "Internal",
+        "category": "Restocking"
+    }
+    restock_orders.append(order)
+    return order
+
+@app.get("/api/orders/restock", response_model=List[Order])
+def get_restock_orders():
+    """Get all submitted restock orders"""
+    return restock_orders
 
 @app.get("/api/orders/{order_id}", response_model=Order)
 def get_order(order_id: str):
